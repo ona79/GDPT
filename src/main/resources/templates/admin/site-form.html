@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${site.id == null} ? 'Ajouter un Site' : 'Éditer un Site')}"></head>
+<body>
+
+    <!-- Header Navigation -->
+    <header th:replace="~{fragments/layout :: navbar('admin-dashboard')}"></header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        
+        <!-- Back button removed to optimize space as per GYG guidelines -->
+
+        <div class="admin-form-wrapper">
+            <div class="admin-form-card">
+                <h1 class="admin-form-title" th:text="${site.id == null} ? 'Ajouter un Site Touristique' : 'Modifier le Site Touristique'">Titre</h1>
+                <form th:action="@{/admin/sites/save}" th:object="${site}" method="post" enctype="multipart/form-data">
+                    <input type="hidden" th:field="*{id}">
+
+                    <div class="form-group">
+                        <label for="nom">Nom du Site *</label>
+                        <input type="text" id="nom" th:field="*{nom}" class="input-control" placeholder="Ex: Musée du Louvre, Gorges du Verdon..." required>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 0.5rem;">
+                        <div class="form-group">
+                            <label for="localisation">Localisation (Ville, Région) *</label>
+                            <input type="text" id="localisation" th:field="*{localisation}" class="input-control" placeholder="Ex: Ziguinchor, Sénégal" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="categorie">Catégorie *</label>
+                            <select id="categorie" th:field="*{categorie}" class="select-control" required>
+                                <option th:each="cat : ${categories}" th:value="${cat}" th:text="${cat}"></option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 0.5rem;">
+                        <div class="form-group">
+                            <label for="tarifEntree">Tarif d'entrée (FCFA) *</label>
+                            <input type="number" id="tarifEntree" th:field="*{tarifEntree}" class="input-control" step="0.01" min="0" placeholder="0.00" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="horairesOuverture">Horaires d'ouverture *</label>
+                            <input type="text" id="horairesOuverture" th:field="*{horairesOuverture}" class="input-control" placeholder="Ex: 09:00 - 18:00" required>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 0.5rem;">
+                        <div class="form-group">
+                            <label for="capaciteAccueil">Capacité d'accueil</label>
+                            <input type="number" id="capaciteAccueil" th:field="*{capaciteAccueil}" class="input-control" min="1" placeholder="Ex: 200">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="latitude">Latitude</label>
+                            <input type="number" id="latitude" th:field="*{latitude}" class="input-control" step="any" placeholder="Ex: 12.5833">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="longitude">Longitude</label>
+                            <input type="number" id="longitude" th:field="*{longitude}" class="input-control" step="any" placeholder="Ex: -16.2719">
+                        </div>
+                    </div>
+
+                    <!-- Image Section : URL OU Fichier -->
+                    <div class="form-group">
+                        <label>Image du site</label>
+
+                        <!-- Aperçu image actuelle (mode édition) -->
+                        <div th:if="${site.id != null and site.imageUri != null and !site.imageUri.isEmpty()}"
+                             style="margin-bottom: 0.75rem; padding: 0.75rem; background: var(--color-bg-secondary, #f4f1eb); border-radius: 8px; border: 1px solid var(--color-border, #d5c5b0); display: flex; align-items: center; gap: 0.75rem;">
+                            <img th:src="${site.imageUri}" alt="Image actuelle"
+                                 style="width: 60px; height: 60px; object-fit: cover; border-radius: 6px; border: 1px solid var(--color-border, #d5c5b0);">
+                            <div>
+                                <p style="margin: 0; font-size: 0.78rem; font-weight: 600; color: var(--color-text-secondary, #666);">IMAGE ACTUELLE</p>
+                                <p style="margin: 0; font-size: 0.82rem; color: var(--color-text-muted, #888); word-break: break-all;" th:text="${site.imageUri}"></p>
+                            </div>
+                        </div>
+
+                        <!-- Option 1 : URL externe -->
+                        <label for="imageUri" style="font-size: 0.8rem; color: var(--color-text-secondary, #666); margin-bottom: 0.3rem; display: block;">
+                            Option 1 — Lien URL externe (Unsplash, etc.)
+                        </label>
+                        <input type="url" id="imageUri" th:field="*{imageUri}" class="input-control"
+                               placeholder="https://images.unsplash.com/photo-..."
+                               style="margin-bottom: 0.75rem;">
+
+                        <!-- Séparateur -->
+                        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+                            <div style="flex: 1; height: 1px; background: var(--color-border, #d5c5b0);"></div>
+                            <span style="font-size: 0.78rem; color: var(--color-text-muted, #999); font-weight: 600;">OU</span>
+                            <div style="flex: 1; height: 1px; background: var(--color-border, #d5c5b0);"></div>
+                        </div>
+
+                        <!-- Option 2 : Upload fichier -->
+                        <label for="imageFile" style="font-size: 0.8rem; color: var(--color-text-secondary, #666); margin-bottom: 0.3rem; display: block;">
+                            Option 2 — Envoyer un fichier depuis votre ordinateur
+                        </label>
+                        <input type="file" id="imageFile" name="imageFile" accept="image/*"
+                               class="input-control"
+                               style="padding: 0.6rem; cursor: pointer;">
+                        <p style="font-size: 0.75rem; color: var(--color-text-muted, #999); margin-top: 0.3rem; margin-bottom: 0;">
+                            Formats acceptés : JPG, PNG, WEBP, GIF — Max 10 Mo. Si vous uploadez un fichier, il aura la priorité sur l'URL ci-dessus.
+                        </p>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="description">Description détaillée</label>
+                        <textarea id="description" th:field="*{description}" class="input-control" rows="5" placeholder="Histoire, anecdotes, points clés d'intérêt du site touristique..."></textarea>
+                    </div>
+
+                    <div class="d-flex gap-2" style="margin-top: 1.5rem;">
+                        <button type="submit" class="btn btn-primary btn-sm">Enregistrer le site</button>
+                        <a th:href="@{/admin/dashboard}" class="btn btn-secondary btn-sm">Annuler</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer th:replace="~{fragments/layout :: footer}"></footer>
+
+</body>
+</html>

@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head(${site.nom})}"></head>
+<body>
+
+    <!-- Header Navigation -->
+    <header th:replace="~{fragments/layout :: navbar('home')}"></header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        
+        <!-- Back button removed to optimize space as per GYG guidelines -->
+
+        <!-- Success/Error alerts -->
+        <div th:if="${param.success}" class="alert-banner alert-banner-success">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span th:text="${param.success}">Action effectuée avec succès.</span>
+        </div>
+        <div th:if="${param.error}" class="alert-banner alert-banner-danger">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            <span th:text="${param.error}">Une erreur s'est produite lors du traitement.</span>
+        </div>
+
+        <h1 th:text="${site.nom}" style="margin-bottom: 1.5rem; font-size: 2.25rem;">Nom du site</h1>
+
+        <!-- Details Grid -->
+        <div class="site-details-grid">
+            
+            <!-- Left Main Column -->
+            <div class="details-main-panel">
+                
+                <!-- Photo Gallery (Real image only) -->
+                <div class="site-gallery-grid">
+                    <div class="gallery-main-img" style="height: 100%; width: 100%;">
+                        <img th:if="${site.imageUri != null and !site.imageUri.isEmpty()}" 
+                             th:src="${site.imageUri}" 
+                             th:alt="${site.nom}"
+                             onerror="this.style.display='none'; this.parentNode.querySelector('.image-placeholder').style.display='flex';">
+                        <div class="image-placeholder" th:style="${site.imageUri != null and !site.imageUri.isEmpty()} ? 'display:none;' : 'display:flex;'">
+                            <span>Photo indisponible</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Description Card -->
+                <div class="panel-card">
+                    <h2 class="panel-title">Présentation du site</h2>
+                    <p style="font-size: 0.95rem; line-height: 1.7; color: var(--clr-text-secondary);" th:text="${site.description}"></p>
+                </div>
+
+                <!-- Events & Activities Section -->
+                <div class="panel-card">
+                    <h2 class="panel-title">Événements &amp; Activités</h2>
+                    
+                    <div th:if="${upcomingEvents.isEmpty()}" style="padding: 1rem; text-align: center; color: var(--clr-text-muted); font-size: 0.9rem;">
+                        <p>Aucun événement n'est programmé sur ce site pour le moment.</p>
+                    </div>
+
+                    <div th:each="event : ${upcomingEvents}" class="event-item" style="border-bottom: 1px solid var(--clr-border); padding-bottom: 1rem; margin-bottom: 1rem;">
+                        <div class="event-header">
+                            <span class="event-name" th:text="${event.nom}">Nom de l'événement</span>
+                            <span class="event-price" th:text="${event.prixTicket == 0.0} ? 'Gratuit' : ${#numbers.formatDecimal(event.prixTicket, 1, 0) + ' FCFA'}"></span>
+                        </div>
+                        
+                        <div class="event-meta" style="margin-bottom: 0.5rem;">
+                            <span>📅 Le <strong th:text="${#temporals.format(event.date, 'dd MMMM yyyy à HH:mm')}"></strong></span>
+                            <span th:if="${event.duree != null}">⏱️ Durée : <strong th:text="${event.duree} + ' min.'"></strong></span>
+                            <span>👥 <strong th:text="${event.placesMax - event.placesDisponibles}"></strong> participants inscrits</span>
+                            <span class="event-fill-rate">(<span th:text="${event.placesDisponibles}"></span> places restantes sur <span th:text="${event.placesMax}"></span>)</span>
+                        </div>
+
+                        <!-- Guide info -->
+                        <div th:if="${event.guide != null}" style="display: flex; gap: 0.75rem; background: var(--clr-bg); border-left: 3px solid var(--clr-accent); padding: 0.75rem; border-radius: 0 var(--radius-md) var(--radius-md) 0; margin-bottom: 0.75rem; font-size: 0.85rem; align-items: center;">
+                            <div class="user-avatar" style="flex-shrink: 0; width: 32px; height: 32px; font-size: 0.9rem;" th:text="${#strings.substring(event.guide.username, 0, 1).toUpperCase()}">G</div>
+                            <div style="flex: 1;">
+                                <div>
+                                    <span>Guide : <strong th:text="${event.guide.username}"></strong></span>
+                                    <span th:if="${event.guide.guideDetails.noteMoyenne > 0.0}" style="color: var(--clr-kapok); font-weight: bold; margin-left: 0.5rem;" th:text="'⭐ ' + ${event.guide.guideDetails.noteMoyenne} + '/5'"></span>
+                                </div>
+                                <p style="color: var(--clr-text-secondary); margin-top: 0.15rem; font-size: 0.8rem;" th:text="${event.guide.guideDetails.biographie}"></p>
+                            </div>
+                        </div>
+                        
+                        <!-- Booking actions based on security role -->
+                        <div sec:authorize="hasAuthority('ROLE_VISITEUR')" class="event-booking-form">
+                            <form th:if="${event.placesDisponibles > 0}" th:action="@{/visiteur/reservation/book}" method="post" class="d-flex align-center gap-2" style="width: 100%; justify-content: flex-end;">
+                                <input type="hidden" name="evenementId" th:value="${event.id}">
+                                <label style="font-size: 0.8rem; font-weight: 600; color: var(--clr-text-secondary);">Tickets :</label>
+                                <input type="number" name="nombrePlaces" value="1" min="1" th:max="${event.placesDisponibles}" class="input-control" style="width: 70px; padding: 0.4rem;" required>
+                                <button type="submit" class="btn btn-primary btn-sm">Réserver</button>
+                            </form>
+                            <span th:if="${event.placesDisponibles == 0}" class="badge badge-gastronomique" style="padding: 0.4rem 0.8rem; margin-left: auto;">Complet</span>
+                        </div>
+                        
+                        <div sec:authorize="isAnonymous()" class="event-booking-form" style="justify-content: flex-end;">
+                            <a th:href="@{/login}" class="btn btn-secondary btn-sm" th:if="${event.placesDisponibles > 0}" style="margin-left: auto;">Se connecter pour réserver</a>
+                            <span th:if="${event.placesDisponibles == 0}" class="badge badge-gastronomique" style="padding: 0.4rem 0.8rem; margin-left: auto;">Complet</span>
+                        </div>
+
+                        <div sec:authorize="hasAuthority('ROLE_ADMIN')" class="event-booking-form" style="justify-content: flex-end;">
+                            <span class="badge badge-historique" style="padding: 0.4rem 0.8rem; margin-left: auto;">Mode Administrateur</span>
+                        </div>
+
+                        <div sec:authorize="hasAuthority('ROLE_GUIDE')" class="event-booking-form" style="justify-content: flex-end;">
+                            <span class="badge badge-naturel" style="padding: 0.4rem 0.8rem; margin-left: auto; background: var(--clr-bg-success, #e8f5e9); color: var(--clr-text-success, #2e7d32);">Mode Guide</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reviews / Evaluations Section -->
+                <div class="panel-card">
+                    <h2 class="panel-title">Avis des Visiteurs</h2>
+
+                    <!-- Form to leave a review has been moved to visitor reservations list to link with bookings -->
+                    <div sec:authorize="hasAuthority('ROLE_VISITEUR')" style="background: var(--clr-bg); border: 1px dashed var(--clr-border); border-radius: var(--radius-md); padding: 1rem; text-align: center; margin-bottom: 1.5rem; font-size: 0.9rem;">
+                        <p>Pour laisser un avis sur ce site ou son guide, rendez-vous sur la page <a th:href="@{/visiteur/reservations}" style="color: var(--clr-accent); font-weight: 600; text-decoration: underline;">Mes Réservations</a>.</p>
+                    </div>
+                    
+                    <div sec:authorize="isAnonymous()" style="background: var(--clr-bg); border: 1px dashed var(--clr-border); border-radius: var(--radius-md); padding: 1.25rem; text-align: center; margin-bottom: 1.5rem; font-size: 0.9rem;">
+                        <p>Vous souhaitez donner votre avis ? <a th:href="@{/login}" style="color: var(--clr-accent); font-weight: 600; text-decoration: underline;">Connectez-vous</a> en tant que visiteur.</p>
+                    </div>
+
+                    <!-- Reviews List -->
+                    <div th:if="${evaluations.isEmpty()}" style="padding: 1rem 0; text-align: center; color: var(--clr-text-muted); font-size: 0.9rem;">
+                        <p>Aucun avis n'a été publié pour le moment.</p>
+                    </div>
+
+                    <div class="reviews-list" th:if="${!evaluations.isEmpty()}">
+                        <div th:each="review : ${evaluations}" class="review-item">
+                            <div class="review-header">
+                                <div class="review-user-info">
+                                    <div class="user-avatar" th:text="${#strings.substring(review.reservation.utilisateur.username, 0, 1).toUpperCase()}">U</div>
+                                    <div>
+                                        <span class="review-username" th:text="${review.reservation.utilisateur.username}">Username</span>
+                                        <span class="review-date" style="display: block;">
+                                            le <span th:text="${#temporals.format(review.datePublication, 'dd/MM/yyyy à HH:mm')}"></span>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="rating-stars">
+                                    <span th:each="i : ${#numbers.sequence(1, 5)}" 
+                                          th:text="${i <= review.note} ? '⭐' : '☆'" 
+                                          style="font-size: 1rem;"></span>
+                                </div>
+                            </div>
+                            <p class="review-body" th:text="${review.commentaire}">Le commentaire...</p>
+                            
+                            <!-- Guide Reply -->
+                            <div th:if="${review.reponseGuide != null and !review.reponseGuide.isEmpty()}" style="margin-top: 0.75rem; padding: 0.5rem 0.75rem; background: var(--clr-bg); border-radius: var(--radius-sm); font-size: 0.85rem; border-left: 2px solid var(--clr-accent);">
+                                <span style="font-weight: bold; color: var(--clr-text-primary);">Réponse du guide :</span>
+                                <p style="margin-top: 0.25rem; color: var(--clr-text-secondary); font-style: italic;" th:text="${review.reponseGuide}"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+ 
+            <!-- Right Sidebar Column -->
+            <div class="details-sidebar">
+                
+                <!-- Ticket Booking Card -->
+                <div class="ticket-card">
+                    <div class="ticket-header">
+                        <span class="ticket-price-label" th:if="${!upcomingEvents.isEmpty()}">À partir de</span>
+                        <span class="ticket-price-label" th:if="${upcomingEvents.isEmpty()}">Tarif</span>
+                        <div class="ticket-price-value" id="ticket-price-display">
+                            <span th:if="${upcomingEvents.isEmpty()}">Non programmé</span>
+                            <span th:if="${!upcomingEvents.isEmpty()}">... FCFA</span>
+                        </div>
+                        <span class="ticket-price-subtitle" th:if="${!upcomingEvents.isEmpty()}">par ticket</span>
+                    </div>
+
+                    <div class="ticket-perforation"></div>
+
+                    <div class="ticket-body">
+                        <!-- If no upcoming events -->
+                        <div th:if="${upcomingEvents.isEmpty()}" style="text-align: center; padding: 1rem 0; color: var(--clr-text-secondary);">
+                            <p style="font-size: 0.9rem;">Aucune activité programmée actuellement.</p>
+                        </div>
+
+                        <!-- Booking Form if events are scheduled -->
+                        <div th:if="${!upcomingEvents.isEmpty()}">
+                            
+                            <form th:action="@{/visiteur/reservation/book}" method="post" id="ticket-booking-form">
+                                
+                                <!-- Event Selector -->
+                                <div class="ticket-selector">
+                                    <label for="ticket-event-select">
+                                        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                                        <span>Sélectionner une activité</span>
+                                    </label>
+                                    <select id="ticket-event-select" name="evenementId" required>
+                                        <option th:each="event : ${upcomingEvents}" 
+                                                th:value="${event.id}" 
+                                                th:data-price="${event.prixTicket}"
+                                                th:data-places="${event.placesDisponibles}"
+                                                th:text="${#temporals.format(event.date, 'dd MMMM yyyy à HH:mm') + ' - ' + event.nom}"></option>
+                                    </select>
+                                </div>
+
+                                <!-- Participants Selector -->
+                                <div class="ticket-selector">
+                                    <label for="ticket-places-input">
+                                        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                                        <span>Nombre de participants</span>
+                                    </label>
+                                    <input type="number" id="ticket-places-input" name="nombrePlaces" value="1" min="1" required>
+                                </div>
+
+                                <!-- Info text (remaining seats) -->
+                                <div class="ticket-info-row" id="ticket-seats-remaining">
+                                    <strong>... places restantes</strong>
+                                </div>
+
+                                <!-- Booking Actions based on role -->
+                                <div sec:authorize="hasAuthority('ROLE_VISITEUR')" style="margin-top: 1rem;">
+                                    <button type="submit" class="btn btn-primary w-full">Réserver maintenant</button>
+                                </div>
+                                
+                                <div sec:authorize="isAnonymous()" style="margin-top: 1rem;">
+                                    <a th:href="@{/login}" class="btn btn-secondary w-full">Se connecter pour réserver</a>
+                                </div>
+
+                                <div sec:authorize="hasAuthority('ROLE_ADMIN')" style="margin-top: 1rem;">
+                                    <div class="badge-admin-mode">Mode Administrateur</div>
+                                </div>
+
+                            </form>
+                        </div>
+
+                        <div class="ticket-policy">
+                            <div class="ticket-policy-item">
+                                <span>✓</span>
+                                <span>Annulation gratuite jusqu'à 24 heures à l'avance</span>
+                            </div>
+                            <div class="ticket-policy-item">
+                                <span>✓</span>
+                                <span>Confirmation instantanée</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Practical Info Card -->
+                <div class="panel-card" style="margin-top: 1.5rem;">
+                    <h2 class="panel-title" style="font-size: 1.15rem; margin-bottom: 1rem;">Informations Pratiques</h2>
+                    
+                    <div style="display: flex; flex-direction: column; gap: 1rem;">
+                        
+                        <div class="info-item">
+                            <span class="info-item-label">Catégorie</span>
+                            <div class="info-item-value">
+                                <span class="badge" 
+                                      th:classappend="'badge-' + ${site.categorie.name().toLowerCase()}" 
+                                      th:text="${site.categorie}"
+                                      style="margin-top: 0.15rem;"></span>
+                            </div>
+                        </div>
+                        
+                        <div class="info-item">
+                            <span class="info-item-label">Tarif d'entrée standard</span>
+                            <strong class="info-item-value" th:text="${site.tarifEntree == 0.0} ? 'Gratuit' : ${#numbers.formatDecimal(site.tarifEntree, 1, 0) + ' FCFA'}"></strong>
+                        </div>
+                        
+                        <div class="info-item">
+                            <span class="info-item-label">Horaires d'ouverture</span>
+                            <span class="info-item-value" th:text="${site.horairesOuverture}"></span>
+                        </div>
+
+                        <div class="info-item">
+                            <span class="info-item-label">Localisation</span>
+                            <span class="info-item-value">📍 <span th:text="${site.localisation}"></span></span>
+                        </div>
+
+                        <div class="info-item" th:if="${site.latitude != null and site.longitude != null}">
+                            <span class="info-item-label">Coordonnées GPS</span>
+                            <span class="info-item-value">🌐 Lat: <span th:text="${site.latitude}"></span>, Lng: <span th:text="${site.longitude}"></span>
+                                <br><a th:href="'https://www.google.com/maps/search/?api=1&query=' + ${site.latitude} + ',' + ${site.longitude}" target="_blank" style="color: var(--clr-accent); text-decoration: underline; font-size: 0.8rem; font-weight: 600;">Voir sur Google Maps &rarr;</a>
+                            </span>
+                        </div>
+
+                        <div class="info-item" th:if="${site.capaciteAccueil != null}">
+                            <span class="info-item-label">Capacité d'accueil</span>
+                            <strong class="info-item-value" th:text="${site.capaciteAccueil} + ' visiteurs max.'"></strong>
+                        </div>
+
+                        <div class="info-item">
+                            <span class="info-item-label">Note globale</span>
+                            <div class="info-item-value rating-stars" style="font-size: 1.05rem; margin-top: 0.15rem;">
+                                <span>⭐</span>
+                                <span th:text="${averageRating > 0.0} ? ${#numbers.formatDecimal(averageRating, 1, 1) + ' / 5'} : 'Aucun avis'"></span>
+                                <span th:if="${!evaluations.isEmpty()}" style="font-size: 0.75rem; color: var(--clr-text-muted); font-weight: normal;" th:text="'(' + ${evaluations.size()} + ' avis)'"></span>
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer th:replace="~{fragments/layout :: footer}"></footer>
+
+    <!-- Dynamic Booking Ticket Script -->
+    <script th:if="${!upcomingEvents.isEmpty()}">
+        document.addEventListener('DOMContentLoaded', () => {
+            const eventSelect = document.getElementById('ticket-event-select');
+            const placesInput = document.getElementById('ticket-places-input');
+            const seatsRemaining = document.getElementById('ticket-seats-remaining');
+            const priceDisplay = document.getElementById('ticket-price-display');
+
+            function updateBookingCard() {
+                const selectedOption = eventSelect.options[eventSelect.selectedIndex];
+                if (!selectedOption) return;
+
+                const price = parseFloat(selectedOption.getAttribute('data-price'));
+                const places = parseInt(selectedOption.getAttribute('data-places'));
+
+                // Update prices
+                if (price === 0) {
+                    priceDisplay.textContent = 'Gratuit';
+                } else {
+                    priceDisplay.textContent = Math.round(price) + ' FCFA';
+                }
+
+                // Update remaining seats
+                seatsRemaining.innerHTML = `<strong>${places} places restantes</strong> sur cette date`;
+
+                // Update places input max
+                placesInput.max = places;
+                if (parseInt(placesInput.value) > places) {
+                    placesInput.value = places;
+                }
+            }
+
+            if (eventSelect) {
+                eventSelect.addEventListener('change', updateBookingCard);
+                updateBookingCard(); // Initial run
+            }
+        });
+    </script>
+
+</body>
+</html>

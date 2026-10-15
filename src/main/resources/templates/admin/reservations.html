@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('Toutes les Réservations')}"></head>
+<body>
+
+    <!-- Header Navigation -->
+    <header th:replace="~{fragments/layout :: navbar('admin-dashboard')}"></header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        
+        <!-- Back button removed to optimize space as per GYG guidelines -->
+
+        <div class="section-title-container">
+            <h1>Suivi Global des Réservations</h1>
+            <span th:text="${reservations.size() + ' réservations enregistrées'}"></span>
+        </div>
+
+        <!-- Success/Error alert banner -->
+        <div th:if="${param.success}" class="alert-banner alert-banner-success">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span th:text="${param.success}">Opération réussie.</span>
+        </div>
+        <div th:if="${param.error}" class="alert-banner alert-banner-danger">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            <span th:text="${param.error}">Une erreur est survenue.</span>
+        </div>
+
+        <!-- Table Container -->
+        <div class="table-container">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th style="width: 60px;">Réf</th>
+                        <th>Visiteur</th>
+                        <th>Monument / Site</th>
+                        <th>Activité</th>
+                        <th style="width: 80px;">Places</th>
+                        <th>Date Réservation</th>
+                        <th>Statut</th>
+                        <th style="width: 100px; text-align: center;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="res : ${reservations}">
+                        <td class="main-text" th:text="${res.id}">1</td>
+                        <td>
+                            <strong th:text="${res.utilisateur.username}">visiteur1</strong>
+                            <span th:text="'(' + ${res.utilisateur.email} + ')'" style="font-size: 0.75rem; display: block; color: var(--clr-text-muted);"></span>
+                        </td>
+                        <td th:text="${res.evenement.site.nom}">Tour Eiffel</td>
+                        <td th:text="${res.evenement.nom}">Visite Nocturne</td>
+                        <td th:text="${res.nombrePlaces}" style="font-weight: 600;">2</td>
+                        <td th:text="${#temporals.format(res.dateReservation, 'dd/MM/yyyy HH:mm')}">25/06/2026 12:00</td>
+                        <td>
+                            <span th:if="${res.statut.name() == 'CONFIRMEE'}" class="badge badge-status-confirmee">Confirmée</span>
+                            <span th:if="${res.statut.name() == 'ANNULEE'}" class="badge badge-status-annulee">Annulée</span>
+                        </td>
+                        <td style="text-align: center;">
+                            <!-- Cancellation Form for Admin -->
+                            <form th:if="${res.statut.name() == 'CONFIRMEE' and res.evenement.date.isAfter(T(java.time.LocalDateTime).now())}" 
+                                  th:action="@{/visiteur/reservation/cancel/{id}(id=${res.id})}" 
+                                  method="post" 
+                                  style="display: inline-block;">
+                                <button type="button" class="btn btn-danger btn-sm btn-delete-confirm" data-message="Confirmer l'annulation administrative de cette réservation ? Les places seront restituées." style="padding: 0.3rem 0.6rem;">Annuler</button>
+                            </form>
+                            <span th:if="${res.statut.name() == 'ANNULEE'}" style="color: var(--clr-text-muted); font-size: 0.85rem;">-</span>
+                            <span th:if="${res.statut.name() == 'CONFIRMEE' and res.evenement.date.isBefore(T(java.time.LocalDateTime).now())}" style="color: var(--clr-text-muted); font-size: 0.85rem;">Passé</span>
+                        </td>
+                    </tr>
+                    <tr th:if="${reservations.isEmpty()}">
+                        <td colspan="8" style="text-align: center; color: var(--clr-text-muted); padding: 2rem;">Aucune réservation enregistrée.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer th:replace="~{fragments/layout :: footer}"></footer>
+
+</body>
+</html>

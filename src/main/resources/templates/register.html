@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Créez votre compte GDPT — Patrimoine Touristique de la Casamance.">
+    <title>Inscription — GDPT Casamance</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body class="auth-page">
+
+    <div class="auth-split">
+
+        <!-- ====================================================== -->
+        <!-- Colonne gauche — Image Casamance                         -->
+        <!-- ====================================================== -->
+        <div class="auth-image-col">
+            <img src="https://images.unsplash.com/photo-1501504905252-473c47e087f8?auto=format&fit=crop&w=900&q=80"
+                 alt="Cathédrale de Ziguinchor">
+            <div class="auth-image-overlay">
+                <p class="auth-image-tagline">Rejoignez-nous et explorez l'histoire.</p>
+                <p class="auth-image-sub">Créez votre compte pour réserver vos prochaines aventures en Casamance.</p>
+            </div>
+        </div>
+
+        <!-- ====================================================== -->
+        <!-- Colonne droite — Formulaire d'inscription                -->
+        <!-- ====================================================== -->
+        <div class="auth-form-col">
+
+            <!-- Lien retour accueil -->
+            <a th:href="@{/}" class="auth-back-link">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                GDPT Accueil
+            </a>
+
+            <div class="auth-card">
+                <h1 class="auth-title">Inscription</h1>
+                <p class="auth-subtitle">Créez votre compte visiteur en quelques secondes.</p>
+
+                <!-- Feedback Banner -->
+                <div th:if="${error}" class="alert-banner alert-banner-danger">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                    <span th:text="${error}">Une erreur est survenue.</span>
+                </div>
+
+                <!-- Form -->
+                <form th:action="@{/register}" method="post">
+                    <div class="form-group">
+                        <label for="username">Nom d'utilisateur</label>
+                        <input type="text" id="username" name="username" th:value="${username}" class="input-control" placeholder="Choisissez un pseudo" required autofocus>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">Adresse Email</label>
+                        <input type="email" id="email" name="email" th:value="${email}" class="input-control" placeholder="exemple@domaine.com" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="role">S'inscrire en tant que</label>
+                        <select id="role" name="role" class="input-control" onchange="toggleGuideFields()">
+                            <option value="ROLE_VISITEUR" th:selected="${role == 'ROLE_VISITEUR'}">Touriste (Visiteur)</option>
+                            <option value="ROLE_GUIDE" th:selected="${role == 'ROLE_GUIDE'}">Guide Professionnel</option>
+                        </select>
+                    </div>
+
+                    <!-- Guide-only fields -->
+                    <div id="guide-fields" style="display: none; border-left: 3px solid var(--clr-accent); padding-left: 1rem; margin-bottom: 1rem;">
+                        <div class="form-group">
+                            <label for="numeroLicence">Numéro de licence</label>
+                            <input type="text" id="numeroLicence" name="numeroLicence" th:value="${numeroLicence}" class="input-control" placeholder="Ex: LIC-12345">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="biographie">Biographie / Présentation</label>
+                            <textarea id="biographie" name="biographie" th:text="${biographie}" class="input-control" rows="3" placeholder="Présentez votre parcours..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Mot de passe</label>
+                        <input type="password" id="password" name="password" class="input-control" placeholder="•••••••• (Chiffres/Lettres)" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary form-submit-btn">S'inscrire</button>
+                </form>
+
+                <p class="auth-footer-link">
+                     Déjà inscrit ? <a th:href="@{/login}">Connectez-vous ici</a>.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleGuideFields() {
+            const roleSelect = document.getElementById('role');
+            const guideFields = document.getElementById('guide-fields');
+            const licenceInput = document.getElementById('numeroLicence');
+            
+            if (roleSelect && roleSelect.value === 'ROLE_GUIDE') {
+                guideFields.style.display = 'block';
+                licenceInput.setAttribute('required', 'required');
+            } else if (guideFields) {
+                guideFields.style.display = 'none';
+                licenceInput.removeAttribute('required');
+            }
+        }
+        document.addEventListener('DOMContentLoaded', toggleGuideFields);
+    </script>
+</body>
+</html>

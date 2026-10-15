@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('Espace Guide')}"></head>
+<body>
+
+    <!-- Header Navigation -->
+    <header th:replace="~{fragments/layout :: navbar('guide-dashboard')}"></header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        
+        <div class="section-title-container">
+            <h1>Espace Guide Professionnel</h1>
+            <span th:text="${user.username} + ' (Licence: ' + ${guideDetails.numeroLicence} + ')'"></span>
+        </div>
+
+        <!-- Success/Error alert banner -->
+        <div th:if="${param.success}" class="alert-banner alert-banner-success">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span th:text="${param.success}">Opération réussie.</span>
+        </div>
+        <div th:if="${param.error}" class="alert-banner alert-banner-danger">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            <span th:text="${param.error}">Une erreur est survenue.</span>
+        </div>
+
+        <div class="site-details-grid">
+            
+            <!-- Left Column: Navigation Tabs & Dashboard Content -->
+            <div class="details-main-panel">
+                
+                <!-- Status Info -->
+                <div style="background: var(--clr-bg); border-radius: var(--radius-md); padding: 1rem 1.25rem; margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--clr-border);">
+                    <div>
+                        <span style="font-size: 0.85rem; color: var(--clr-text-secondary); display: block;">Statut de vérification du compte</span>
+                        <strong th:if="${guideDetails.estVerifie}" style="color: var(--clr-text-success); font-size: 1rem;">✓ Compte vérifié et actif</strong>
+                        <strong th:if="${!guideDetails.estVerifie}" style="color: var(--clr-kapok); font-size: 1rem;">⚠ En attente de validation par l'administration</strong>
+                    </div>
+                    <div style="text-align: right;">
+                        <span style="font-size: 0.85rem; color: var(--clr-text-secondary); display: block;">Note moyenne</span>
+                        <strong style="font-size: 1.2rem; color: var(--clr-text-primary);" th:text="${guideDetails.noteMoyenne > 0.0} ? ${guideDetails.noteMoyenne} + ' / 5' : 'Aucune'">5 / 5</strong>
+                    </div>
+                </div>
+
+                <!-- Tabs Container -->
+                <div class="panel-card" style="padding: 0;">
+                    <div style="display: flex; border-bottom: 1px solid var(--clr-border); background: var(--clr-bg); border-radius: var(--radius-md) var(--radius-md) 0 0;">
+                        <button onclick="switchTab('tab-agenda')" id="btn-tab-agenda" class="tab-btn active" style="flex: 1; padding: 1rem; border: none; background: none; font-weight: 600; cursor: pointer; border-bottom: 3px solid var(--clr-accent);">🗓 Agenda du Jour</button>
+                        <button onclick="switchTab('tab-events')" id="btn-tab-events" class="tab-btn" style="flex: 1; padding: 1rem; border: none; background: none; font-weight: 600; cursor: pointer; border-bottom: 3px solid transparent;">🎯 Toutes mes Activités</button>
+                        <button onclick="switchTab('tab-reviews')" id="btn-tab-reviews" class="tab-btn" style="flex: 1; padding: 1rem; border: none; background: none; font-weight: 600; cursor: pointer; border-bottom: 3px solid transparent;">⭐ Avis Reçus</button>
+                    </div>
+
+                    <div style="padding: 1.5rem;">
+                        
+                        <!-- TAB 1: AGENDA -->
+                        <div id="tab-agenda" class="tab-content-panel">
+                            <h3>Mon Agenda du Jour</h3>
+                            <p style="font-size: 0.85rem; color: var(--clr-text-secondary); margin-bottom: 1.5rem;">Activités planifiées pour aujourd'hui (<span th:text="${#temporals.format(T(java.time.LocalDate).now(), 'dd MMMM yyyy')}"></span>).</p>
+
+                            <div th:if="${todayEvents.isEmpty()}" style="text-align: center; padding: 2rem 0; color: var(--clr-text-muted);">
+                                <p>Aucune visite de programmée aujourd'hui.</p>
+                            </div>
+
+                            <div th:each="event : ${todayEvents}" class="event-item" style="border-bottom: 1px solid var(--clr-border); padding-bottom: 1rem; margin-bottom: 1rem;">
+                                <div class="event-header">
+                                    <span class="event-name" th:text="${event.nom}">Visite</span>
+                                    <span class="event-price" th:text="${event.site.nom}">Nom du site</span>
+                                </div>
+                                <div class="event-meta" style="margin-top: 0.5rem;">
+                                    <span>⏱️ Début à <strong th:text="${#temporals.format(event.date, 'HH:mm')}"></strong></span>
+                                    <span th:if="${event.duree != null}">⌛ Durée : <strong th:text="${event.duree} + ' min.'"></strong></span>
+                                    <span>👥 Inscrits : <strong th:text="${event.placesMax - event.placesDisponibles}"></strong> / <span th:text="${event.placesMax}"></span></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- TAB 2: ALL EVENTS -->
+                        <div id="tab-events" class="tab-content-panel" style="display: none;">
+                            <h3>Toutes mes Activités</h3>
+                            <p style="font-size: 0.85rem; color: var(--clr-text-secondary); margin-bottom: 1.5rem;">Historique complet de vos visites touristiques programmées.</p>
+
+                            <div th:if="${allEvents.isEmpty()}" style="text-align: center; padding: 2rem 0; color: var(--clr-text-muted);">
+                                <p>Vous n'êtes assigné à aucun événement pour le moment.</p>
+                            </div>
+
+                            <div th:each="event : ${allEvents}" class="event-item" style="border-bottom: 1px solid var(--clr-border); padding-bottom: 1rem; margin-bottom: 1rem;">
+                                <div class="event-header">
+                                    <span class="event-name" th:text="${event.nom}">Visite</span>
+                                    <span class="event-price" th:text="${event.site.nom}">Nom du site</span>
+                                </div>
+                                <div class="event-meta" style="margin-top: 0.5rem;">
+                                    <span>📅 Le <strong th:text="${#temporals.format(event.date, 'dd/MM/yyyy HH:mm')}"></strong></span>
+                                    <span th:if="${event.duree != null}">⌛ Durée : <strong th:text="${event.duree} + ' min.'"></strong></span>
+                                    <span>👥 Inscrits : <strong th:text="${event.placesMax - event.placesDisponibles}"></strong> / <span th:text="${event.placesMax}"></span></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- TAB 3: REVIEWS -->
+                        <div id="tab-reviews" class="tab-content-panel" style="display: none;">
+                            <h3>Avis et Commentaires Reçus</h3>
+                            <p style="font-size: 0.85rem; color: var(--clr-text-secondary); margin-bottom: 1.5rem;">Les retours des visiteurs sur vos guidages.</p>
+
+                            <div th:if="${avisList.isEmpty()}" style="text-align: center; padding: 2rem 0; color: var(--clr-text-muted);">
+                                <p>Aucun avis n'a été rédigé sur vos activités pour l'instant.</p>
+                            </div>
+
+                            <div th:each="review : ${avisList}" class="review-item" style="border-bottom: 1px solid var(--clr-border); padding-bottom: 1.25rem; margin-bottom: 1.25rem;">
+                                <div class="review-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                    <div>
+                                        <strong th:text="${review.reservation.utilisateur.username}">Visiteur</strong>
+                                        <span style="font-size: 0.75rem; color: var(--clr-text-muted); display: block;" th:text="'sur ' + ${review.reservation.evenement.nom} + ' (' + ${review.reservation.evenement.site.nom} + ')'"></span>
+                                    </div>
+                                    <div class="rating-stars">
+                                        <span th:each="i : ${#numbers.sequence(1, 5)}" th:text="${i <= review.note} ? '⭐' : '☆'"></span>
+                                    </div>
+                                </div>
+                                <p style="font-size: 0.9rem; color: var(--clr-text-secondary);" th:text="${review.commentaire}"></p>
+                                
+                                <!-- Reply already present -->
+                                <div th:if="${review.reponseGuide != null}" style="margin-top: 0.75rem; padding: 0.5rem 0.75rem; background: var(--clr-bg); border-radius: var(--radius-sm); font-size: 0.85rem; border-left: 2px solid var(--clr-accent);">
+                                    <strong>Votre réponse :</strong>
+                                    <p style="margin-top: 0.15rem; color: var(--clr-text-secondary); font-style: italic;" th:text="${review.reponseGuide}"></p>
+                                </div>
+
+                                <!-- Form to Reply + Report buttons -->
+                                <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem;">
+                                    <button th:if="${review.reponseGuide == null}" type="button" th:onclick="'openReplyModal(' + ${review.id} + ')'" class="btn btn-secondary btn-sm" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">Répondre</button>
+                                    <button type="button" th:onclick="'openReportModal(' + ${review.id} + ')'" class="btn btn-danger btn-sm" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; background: transparent; border: 1px solid var(--clr-danger); color: var(--clr-danger);">Signaler abusif</button>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right Column: Profile details -->
+            <div class="details-sidebar">
+                
+                <div class="panel-card">
+                    <h2 class="panel-title" style="font-size: 1.15rem; margin-bottom: 1.25rem;">Mon Profil Guide</h2>
+                    
+                    <form th:action="@{/guide/profile/update}" method="post">
+                        <div class="form-group" style="margin-bottom: 1rem;">
+                            <label style="font-weight: 600; display: block; margin-bottom: 0.25rem; font-size: 0.85rem;">Numéro de licence professionnelle</label>
+                            <input type="text" class="input-control" th:value="${guideDetails.numeroLicence}" disabled style="background: var(--clr-bg); cursor: not-allowed; width: 100%;">
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 1.25rem;">
+                            <label for="biographie" style="font-weight: 600; display: block; margin-bottom: 0.25rem; font-size: 0.85rem;">Ma Biographie</label>
+                            <textarea id="biographie" name="biographie" class="input-control" rows="6" th:text="${guideDetails.biographie}" placeholder="Décrivez votre expérience, langues parlées, domaines d'expertise..." required style="width: 100%; box-sizing: border-box;"></textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-full">Mettre à jour la biographie</button>
+                    </form>
+                </div>
+
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Modal Répondre -->
+    <dialog id="reply-modal" class="confirm-dialog" style="max-width: 500px;">
+        <div class="confirm-dialog-content">
+            <h3>Répondre au commentaire</h3>
+            <p style="font-size: 0.85rem; color: var(--clr-text-secondary); margin-bottom: 1.25rem;">Votre réponse sera visible publiquement par tous les visiteurs sur le site.</p>
+            
+            <form th:action="@{/guide/avis/reply}" method="post">
+                <input type="hidden" id="reply-avis-id" name="avisId" value="">
+                
+                <div class="form-group" style="margin-bottom: 1.25rem;">
+                    <label for="reponse" style="font-weight: 600; display: block; margin-bottom: 0.35rem;">Votre réponse</label>
+                    <textarea id="reponse" name="reponse" class="input-control" rows="4" placeholder="Tapez votre réponse de manière courtoise..." required style="width: 100%; box-sizing: border-box;"></textarea>
+                </div>
+                
+                <div class="confirm-dialog-actions" style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+                    <button type="button" onclick="document.getElementById('reply-modal').close()" class="btn btn-secondary btn-sm">Annuler</button>
+                    <button type="submit" class="btn btn-primary btn-sm">Enregistrer la réponse</button>
+                </div>
+            </form>
+        </div>
+    </dialog>
+
+    <!-- Modal Signaler -->
+    <dialog id="report-modal" class="confirm-dialog" style="max-width: 500px;">
+        <div class="confirm-dialog-content">
+            <h3>Signaler l'avis</h3>
+            <p style="font-size: 0.85rem; color: var(--clr-text-secondary); margin-bottom: 1.25rem;">L'avis sera soumis à la modération du conservateur.</p>
+            
+            <form th:action="@{/guide/avis/report}" method="post">
+                <input type="hidden" id="report-avis-id" name="avisId" value="">
+                
+                <div class="form-group" style="margin-bottom: 1.25rem;">
+                    <label for="motif" style="font-weight: 600; display: block; margin-bottom: 0.35rem;">Motif du signalement</label>
+                    <textarea id="motif" name="motif" class="input-control" rows="4" placeholder="Expliquez pourquoi cet avis est abusif, insultant ou inapproprié..." required style="width: 100%; box-sizing: border-box;"></textarea>
+                </div>
+                
+                <div class="confirm-dialog-actions" style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+                    <button type="button" onclick="document.getElementById('report-modal').close()" class="btn btn-secondary btn-sm">Annuler</button>
+                    <button type="submit" class="btn btn-danger btn-sm">Envoyer le signalement</button>
+                </div>
+            </form>
+        </div>
+    </dialog>
+
+    <!-- Script Tabs & Modals -->
+    <script>
+        function switchTab(tabId) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content-panel').forEach(el => el.style.display = 'none');
+            // Remove active classes
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.style.borderBottomColor = 'transparent';
+                btn.classList.remove('active');
+            });
+            
+            // Show active tab
+            document.getElementById(tabId).style.display = 'block';
+            // Set active class
+            const activeBtn = document.getElementById('btn-' + tabId);
+            activeBtn.style.borderBottomColor = 'var(--clr-accent)';
+            activeBtn.classList.add('active');
+        }
+
+        function openReplyModal(avisId) {
+            const modal = document.getElementById('reply-modal');
+            document.getElementById('reply-avis-id').value = avisId;
+            modal.showModal();
+        }
+
+        function openReportModal(avisId) {
+            const modal = document.getElementById('report-modal');
+            document.getElementById('report-avis-id').value = avisId;
+            modal.showModal();
+        }
+    </script>
+
+    <!-- Footer -->
+    <footer th:replace="~{fragments/layout :: footer}"></footer>
+
+</body>
+</html>

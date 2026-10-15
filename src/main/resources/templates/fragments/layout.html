@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:fragment="head(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="GDPT — Gestion du Patrimoine Touristique et Culturel de Ziguinchor (Casamance, Sénégal). Réservez des activités historiques, naturelles et culturelles d'exception.">
+    <title th:text="${title} + ' — GDPT Casamance'"></title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+
+    <!-- ============================================================ -->
+    <!-- NAVBAR                                                         -->
+    <!-- ============================================================ -->
+    <header th:fragment="navbar(activePage)" class="navbar">
+        <div class="nav-container">
+
+            <!-- Logo -->
+            <a th:href="@{/}" class="brand-logo">GD<span>PT</span></a>
+
+            <!-- Hamburger Toggle (mobile) — JS toggle, CSS anime -->
+            <button class="mobile-menu-toggle" id="nav-hamburger"
+                    aria-expanded="false" aria-label="Ouvrir le menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+
+            <!-- Navigation principale -->
+            <nav class="nav-menu">
+                <ul class="nav-links" id="nav-links-list">
+
+                    <li>
+                        <a th:href="@{/}" class="nav-link"
+                           th:classappend="${activePage == 'home'} ? ' active'">Accueil</a>
+                    </li>
+
+                    <!-- Lien visiteur -->
+                    <li sec:authorize="hasAuthority('ROLE_VISITEUR')">
+                        <a th:href="@{/visiteur/reservations}" class="nav-link"
+                           th:classappend="${activePage == 'reservations'} ? ' active'">Mes Réservations</a>
+                    </li>
+
+                    <!-- Lien guide -->
+                    <li sec:authorize="hasAuthority('ROLE_GUIDE')">
+                        <a th:href="@{/guide/dashboard}" class="nav-link"
+                           th:classappend="${activePage == 'guide-dashboard'} ? ' active'">Espace Guide</a>
+                    </li>
+
+                    <!-- Lien admin -->
+                    <li sec:authorize="hasAuthority('ROLE_ADMIN')">
+                        <a th:href="@{/admin/dashboard}" class="nav-link"
+                           th:classappend="${activePage == 'admin-dashboard'} ? ' active'">Administration</a>
+                    </li>
+
+                    <!-- Visiteur anonyme -->
+                    <li sec:authorize="isAnonymous()">
+                        <a th:href="@{/login}" class="btn btn-secondary btn-sm">Se connecter</a>
+                    </li>
+                    <li sec:authorize="isAnonymous()">
+                        <a th:href="@{/register}" class="btn btn-primary btn-sm">S'inscrire</a>
+                    </li>
+
+                    <!-- Utilisateur connecté -->
+                    <li sec:authorize="isAuthenticated()" class="user-badge-nav">
+                        <span><strong sec:authentication="name">Utilisateur</strong></span>
+                        <span class="role-label" sec:authorize="hasAuthority('ROLE_ADMIN')">Admin</span>
+                        <span class="role-label" sec:authorize="hasAuthority('ROLE_VISITEUR')">Visiteur</span>
+                        <span class="role-label" sec:authorize="hasAuthority('ROLE_GUIDE')">Guide</span>
+                        <a th:href="@{/logout}" class="btn-logout">Déconnexion</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+
+        <!-- Script hamburger : JS toggle uniquement, CSS gère les animations -->
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                const toggle = document.getElementById('nav-hamburger');
+                const menu   = document.getElementById('nav-links-list');
+                if (toggle && menu) {
+                    toggle.addEventListener('click', () => {
+                        const expanded = toggle.getAttribute('aria-expanded') === 'true';
+                        toggle.setAttribute('aria-expanded', String(!expanded));
+                        menu.classList.toggle('active');
+                    });
+                    // Fermer le menu si on clique en dehors
+                    document.addEventListener('click', (e) => {
+                        if (!toggle.contains(e.target) && !menu.contains(e.target)) {
+                            menu.classList.remove('active');
+                            toggle.setAttribute('aria-expanded', 'false');
+                        }
+                    });
+                }
+            });
+        </script>
+    </header>
+
+    <!-- ============================================================ -->
+    <!-- FOOTER                                                         -->
+    <!-- ============================================================ -->
+    <footer th:fragment="footer" class="footer">
+        <div class="footer-container">
+
+            <div class="footer-column">
+                <div class="footer-brand">GDPT</div>
+                <p>Gestion du Patrimoine Touristique et Culturel de la Casamance. Réservez des expériences authentiques au cœur des sites historiques, naturels et culturels de Ziguinchor.</p>
+            </div>
+
+            <div class="footer-column">
+                <h4>Navigation</h4>
+                <ul class="footer-links">
+                    <li><a th:href="@{/}">Accueil</a></li>
+                    <li sec:authorize="hasAuthority('ROLE_VISITEUR')">
+                        <a th:href="@{/visiteur/reservations}">Mes Réservations</a>
+                    </li>
+                    <li sec:authorize="hasAuthority('ROLE_ADMIN')">
+                        <a th:href="@{/admin/dashboard}">Administration</a>
+                    </li>
+                    <li sec:authorize="isAnonymous()">
+                        <a th:href="@{/login}">Se connecter</a>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="footer-column">
+                <h4>Contact</h4>
+                <p>
+                    Quartier Escale, Ziguinchor<br>
+                    Région de Ziguinchor, Sénégal<br>
+                    contact@gdpt.sn &mdash; +221 33 991 12 34
+                </p>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <span>&copy; 2026 GDPT &mdash; Patrimoine de la Casamance</span>
+            <span>Spring Boot 3 &amp; Thymeleaf</span>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- DIALOG DE CONFIRMATION SUPPRESSION                            -->
+        <!-- ============================================================ -->
+        <dialog id="confirm-delete-dialog" class="confirm-dialog">
+            <div class="confirm-dialog-content">
+                <h3>Confirmer l'action</h3>
+                <p id="confirm-dialog-message">Êtes-vous sûr de vouloir effectuer cette opération ? Cette action est irréversible.</p>
+                <div class="confirm-dialog-actions">
+                    <button type="button" id="confirm-dialog-cancel" class="btn btn-secondary btn-sm">Annuler</button>
+                    <button type="button" id="confirm-dialog-submit" class="btn btn-danger btn-sm">Confirmer</button>
+                </div>
+            </div>
+        </dialog>
+
+        <script>
+            const initDeleteDialog = () => {
+                const deleteDialog   = document.getElementById('confirm-delete-dialog');
+                const confirmCancel  = document.getElementById('confirm-dialog-cancel');
+                const confirmSubmit  = document.getElementById('confirm-dialog-submit');
+                let formToSubmit = null;
+
+                if (deleteDialog && confirmCancel && confirmSubmit) {
+                    confirmCancel.addEventListener('click', () => {
+                        deleteDialog.close();
+                        formToSubmit = null;
+                    });
+
+                    confirmSubmit.addEventListener('click', () => {
+                        if (formToSubmit) formToSubmit.submit();
+                        deleteDialog.close();
+                    });
+
+                    document.addEventListener('click', (e) => {
+                        const btn = e.target.closest('.btn-delete-confirm');
+                        if (btn) {
+                            e.preventDefault();
+                            formToSubmit = btn.closest('form');
+                            const msg = btn.getAttribute('data-message');
+                            document.getElementById('confirm-dialog-message').textContent =
+                                msg || 'Êtes-vous sûr de vouloir effectuer cette opération ? Cette action est irréversible.';
+                            deleteDialog.showModal();
+                        }
+                    });
+                }
+            };
+
+            if (document.readyState !== 'loading') {
+                initDeleteDialog();
+            } else {
+                document.addEventListener('DOMContentLoaded', initDeleteDialog);
+            }
+        </script>
+    </footer>
+
+</body>
+</html>
